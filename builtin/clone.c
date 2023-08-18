@@ -45,6 +45,9 @@
 #include "hook.h"
 #include "bundle.h"
 #include "bundle-uri.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 /*
  * Overall FIXMEs:
@@ -934,9 +937,12 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 	int filter_submodules = 0;
 	int hash_algo;
 	const int do_not_override_repo_unix_permissions = -1;
+	char* cwd = getenv("PWD");
 
 	struct transport_ls_refs_options transport_ls_refs_options =
 		TRANSPORT_LS_REFS_OPTIONS_INIT;
+
+	char abs_path[4096];
 
 	packet_trace_identity("clone");
 
@@ -970,9 +976,14 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 	if (bundle_uri && deepen)
 		die(_("--bundle-uri is incompatible with --depth, --shallow-since, and --shallow-exclude"));
 
-	repo_name = argv[0];
+	repo_name = argv[0];  // here repo link
 
 	path = get_repo_path(repo_name, &is_bundle);
+
+	memcpy(abs_path, cwd, strlen(cwd));
+
+	printf("abs_path:  %s", abs_path);
+
 	if (path) {
 		FREE_AND_NULL(path);
 		repo = repo_to_free = absolute_pathdup(repo_name);
@@ -991,6 +1002,9 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 	else
 		dir = git_url_basename(repo_name, is_bundle, option_bare);
 	strip_dir_trailing_slashes(dir);
+
+	memcpy(abs_path + strlen(abs_path), "/", 1);
+	memcpy(abs_path + strlen(abs_path), dir, strlen(dir));
 
 	dest_exists = path_exists(dir);
 	if (dest_exists && !is_empty_dir(dir))
